@@ -1,0 +1,18 @@
+---
+description: Security checklist when touching auth, secrets, user input, or Route Handlers. Invokes security-reviewer for full audits.
+globs: "**/auth/**/*.go","**/middleware/*.go","**/*auth*.go","**/*password*.go","**/*token*.go","app/api/**/*","app/**/*auth*","app/**/*login*","app/**/*token*",".env.example"
+alwaysApply: false
+---
+
+# Security Reviewer (reminder)
+
+When editing these files, keep security in mind. For a full vulnerability review, invoke the **security-reviewer** subagent.
+
+## Quick checklist
+
+- **Route Handlers (`app/api/**`):** Validate all inputs; avoid command injection and path traversal; limit payload sizes where relevant; no secrets in responses or logs; correct authz if endpoints are non-public.
+- **Backend (Go, when present):** Parameterized queries only; no secrets in code or logs; validate and sanitize input; auth checks on protected routes; secure session/token handling.
+- **Frontend / Next:** No secrets in client bundles; never trust raw user HTML without sanitization; prefer httpOnly cookies for session tokens when applicable; avoid sensitive data in URLs or `localStorage` when avoidable.
+- **Config:** Secrets only in env; `.env.local` / `.env` not committed; `.env.example` documents variables without real values.
+
+For a dedicated security pass, ask the main agent to delegate to **security-reviewer**.

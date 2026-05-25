@@ -1,0 +1,56 @@
+---
+description: Next.js App Router conventions and doc-first workflow. Read before relying on training data.
+globs: "app/**/*,next.config.mjs"
+alwaysApply: false
+---
+
+# Next.js (this repo)
+
+## Read the shipped docs first
+
+**`AGENTS.md`** states this is **not** necessarily the Next.js version from general training: APIs, conventions, and file layout may differ. Before implementing or refactoring:
+
+- Open the relevant topic under **`node_modules/next/dist/docs/`** (or use the project's preferred doc browsing flow).
+- Heed deprecation notices and version-specific behavior.
+
+---
+
+## Marketing design system
+
+For visual and branding behavior (color, typography scale, spacing tiers, motion, components, a11y), `doc/design-doc/` plus `app/globals.css` are normative. Prefer `var(--*)` tokens and `.type-*` utilities documented there. Defer to `node_modules/next/dist/docs/` for Next.js mechanics only.
+
+---
+
+## App Router
+
+- Routes live under **`app/`**: **`page.js|jsx|tsx`**, **`layout.js|jsx|tsx`**, **`loading.js`**, **`error.js`**, route groups `(group)`, parallel routes, etc., per current docs.
+- Prefer **Server Components** by default; add **`"use client"`** only when required (hooks, events, browser APIs).
+- **Colocation:** keep route-specific modules near their segment when it aids clarity.
+
+---
+
+## Route Handlers
+
+- Define HTTP handlers in **`app/api/<path>/route.ts|js`** (or nested segments as needed).
+- Use **`export async function GET|POST|...`** per Next conventions; return **`Response`** / **`NextResponse`** as documented.
+- Validate and sanitize inputs; use appropriate status codes; never expose stack traces or secrets in responses.
+- For Node-only libraries (e.g. **`sharp`**), ensure runtime/config matches Next docs for your deployment target.
+
+---
+
+## Images and assets
+
+- Prefer **`next/image`** for static and remote images where configured; set **`remotePatterns`** (or equivalent) in **`next.config.mjs`** when loading external URLs.
+- Static files belong in **`public/`**.
+
+---
+
+## Config
+
+- **`next.config.mjs`** — align experimental flags, images, redirects, and env usage with the installed Next version's documentation.
+
+---
+
+## When uncertain
+
+Do **not** guess App Router or Route Handler APIs from memory — confirm in **`node_modules/next/dist/docs/`** for this project's Next.js version.

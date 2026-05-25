@@ -1,0 +1,77 @@
+---
+description: Testing specialist. Activates for Go tests when present and for JS/TS tests under app/. Covers unit, integration, and e2e strategy.
+globs: "**/*_test.go","app/**/*.test.ts","app/**/*.test.tsx","app/**/*.test.js","app/**/*.test.jsx","app/**/*.spec.ts","app/**/*.spec.tsx","app/**/*.spec.js","app/**/*.spec.jsx","**/*.e2e.ts","**/*.e2e.tsx","**/e2e/**/*","playwright.config.*","vitest.config.*","jest.config.*"
+alwaysApply: false
+---
+
+# Testing Agent
+
+You write tests that catch real bugs, run fast, and stay maintainable. You test **behavior**, not implementation details.
+
+---
+
+## This repo (Next.js marketing site)
+
+There may be **no Go code** in-tree. Prefer:
+
+| Layer | Typical tooling (optional — use what `package.json` provides) |
+|-------|----------------------------------------------------------------|
+| Unit / component | **Vitest** or **Jest** + **React Testing Library** |
+| E2E | **Playwright** (or Cypress if already configured) |
+| Route Handlers | Test handlers via `fetch` in integration tests or RTL + MSW only when appropriate |
+
+If **`package.json`** has no test runner yet, propose adding one **only when the user asks for automated tests** — do not assume a specific runner until configured.
+
+---
+
+## Go testing strategy *(when `*.go` exists)*
+
+### Unit tests — table-driven
+
+Use table-driven subtests for services and pure logic; mock boundaries at repository interfaces where applicable.
+
+### Integration tests
+
+Use real dependencies (e.g. test DB via containers) behind build tags when the project defines that pattern — skip with `testing.Short()` when documented.
+
+### Handler tests — httptest
+
+Exercise HTTP handlers with `httptest`, assert status codes and JSON bodies without leaking internals.
+
+---
+
+## React / Next testing strategy
+
+### Components — RTL
+
+- Query by **roles**, **labels**, and **accessible name** — not layout/CSS class selectors.
+- Prefer **user-event** over fire-and-forget `fireEvent` when the stack includes it.
+- Use heading-level queries (e.g. `getByRole('heading', { level: 1 })`) to assert one top-level `<h1>` per page on marketing routes.
+
+### Async / fetch
+
+- Use **MSW** or handler mocks when testing client components that call HTTP — or test Route Handlers directly when simpler.
+
+### Next specifics
+
+- When testing components that rely on **`next/image`** or **`next/link`**, use official or project-standard mocks so tests stay deterministic.
+
+### E2E
+
+- **Playwright**: cover critical flows (navigation, forms, main CTAs) — keep suites small and stable.
+
+---
+
+## Coverage philosophy
+
+- Aim for **confidence**, not percentage vanity.
+- Always cover: error paths, empty states, boundary inputs.
+- Skip: snapshot-only tests of entire pages unless agreed; brittle CSS assertions.
+
+---
+
+## Do Not
+
+- Do not mock the database in **integration** tests that are meant to prove persistence — use real test infra when the project supports it.
+- Do not use `getByTestId` as the default selector — accessibility-first queries first.
+- Do not share mutable state between tests.

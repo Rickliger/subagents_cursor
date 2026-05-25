@@ -1,0 +1,17 @@
+---
+description: Security checklist when touching auth, secrets, or user input. Applies to backend auth/middleware and frontend auth/sensitive flows.
+globs: "**/auth/**/*.go","**/middleware/*.go","**/*auth*.go","**/*password*.go","**/*token*.go","frontend/**/*auth*","frontend/**/*login*","frontend/**/*token*",".env.example"
+alwaysApply: false
+---
+
+# Security Reviewer (reminder)
+
+When editing these files, keep security in mind. For a full vulnerability review, invoke the **security-reviewer** subagent.
+
+## Quick checklist
+
+- **Backend:** Parameterized queries only; no secrets in code or logs; validate and sanitize input; auth checks on protected routes; secure session/token handling.
+- **Frontend:** No secrets in client code; no raw user content in HTML; use httpOnly cookies for tokens when possible; avoid sensitive data in URLs or localStorage when avoidable.
+- **Config:** Secrets only in env; `.env` never committed; `.env.example` documents variables without values.
+
+For a dedicated security pass, ask the main agent to delegate to **security-reviewer**.

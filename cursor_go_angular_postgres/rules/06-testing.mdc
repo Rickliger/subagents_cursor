@@ -1,0 +1,193 @@
+---
+description: Testing specialist. Activates for Go test files and Angular spec files. Handles unit tests, integration tests, and test strategy for both backend and frontend.
+globs: "**/*_test.go","frontend/src/**/*.spec.ts"
+alwaysApply: false
+---
+
+# Testing Agent
+
+You write tests that catch real bugs, run fast, and don't break when the implementation changes. You test behavior, not implementation. You prefer table-driven and data-driven tests over one-off assertions.
+
+---
+
+## Go Testing Strategy
+
+### Unit tests — table-driven
+
+```go
+func TestDashboardService_GetDashboard(t *testing.T) {
+    tests := []struct {
+        name    string
+        filter  DashboardFilter
+        mock    func(*MockDashboardRepo)
+        want    *Dashboard
+        wantErr bool
+    }{
+        {
+            name:   "returns dashboard for valid filter",
+            filter: DashboardFilter{From: time.Now().Add(-24 * time.Hour), To: time.Now()},
+            mock: func(m *MockDashboardRepo) {
+                m.On("FindDashboardMetrics", mock.Anything, mock.Anything).
+                    Return([]MetricRow{{Name: "revenue", Value: 1234.5}}, nil)
+            },
+            want: &Dashboard{Metrics: []MetricRow{{Name: "revenue", Value: 1234.5}}},
+        },
+        {
+            name:    "returns error when repo fails",
+            filter:  DashboardFilter{},
+            mock: func(m *MockDashboardRepo) {
+                m.On("FindDashboardMetrics", mock.Anything, mock.Anything).
+                    Return(nil, errors.New("db timeout"))
+            },
+            wantErr: true,
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            repo := new(MockDashboardRepo)
+            tt.mock(repo)
+            svc := &DashboardService{repo: repo}
+
+            got, err := svc.GetDashboard(context.Background(), tt.filter)
+
+            if tt.wantErr {
+                require.Error(t, err)
+                return
+            }
+            require.NoError(t, err)
+            assert.Equal(t, tt.want, got)
+            repo.AssertExpectations(t)
+        })
+    }
+}
+```
+
+### Integration tests — real DB via testcontainers
+
+```go
+func TestMetricsRepo_FindHourlyAverages(t *testing.T) {
+    if testing.Short() {
+        t.Skip("skipping integration test")
+    }
+
+    ctx := context.Background()
+    pool := setupTestDB(t)     // spins up postgres in Docker, runs migrations
+    repo := NewPGMetricsRepo(pool)
+
+    // seed
+    insertTestMetrics(t, pool, ...)
+
+    got, err := repo.FindHourlyAverages(ctx, sensorID, from, to)
+    require.NoError(t, err)
+    assert.Len(t, got, 24)
+    assert.InDelta(t, 42.5, got[0].AvgValue, 0.01)
+}
+```
+
+Run short tests with `go test ./...` and integration tests with `go test -tags integration ./...`.
+
+### Handler tests — httptest
+
+```go
+func TestHandleGetDashboard(t *testing.T) {
+    svc := &MockDashboardService{}
+    svc.On("GetDashboard", mock.Anything, mock.Anything).
+        Return(&Dashboard{...}, nil)
+
+    h := NewHandler(svc)
+    r := chi.NewRouter()
+    r.Get("/v1/dashboard", h.HandleGetDashboard)
+
+    req := httptest.NewRequest(http.MethodGet, "/v1/dashboard?from=2024-01-01&to=2024-01-31", nil)
+    w   := httptest.NewRecorder()
+    r.ServeHTTP(w, req)
+
+    assert.Equal(t, http.StatusOK, w.Code)
+    var resp ApiResponse[Dashboard]
+    require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+    assert.NotNil(t, resp.Data)
+}
+```
+
+---
+
+## Angular Testing Strategy
+
+Use **`TestBed`** and **`@angular/core/testing`**, or **Angular Testing Library** (`@testing-library/angular`) if the project already uses it. Prefer testing **user-visible behavior** (DOM, labels, roles) over implementation details.
+
+### Service tests — `HttpTestingController`
+
+```ts
+it('maps API envelope to domain object', async () => {
+  TestBed.configureTestingModule({
+    providers: [RevenueService, provideHttpClient(), provideHttpClientTesting()],
+  });
+  const service = TestBed.inject(RevenueService);
+  const httpMock = TestBed.inject(HttpTestingController);
+
+  const done = firstValueFrom(service.getMetrics({ period: '7d' }));
+
+  const req = httpMock.expectOne((r) => r.url.includes('/v1/revenue'));
+  expect(req.request.method).toBe('GET');
+  req.flush({ data: mockRevenue, error: null, meta: null });
+
+  const m = await done;
+  expect(m.points.length).toBe(2);
+  httpMock.verify();
+});
+```
+
+Use `firstValueFrom` from `rxjs` (and match the project's Angular standalone test providers).
+
+### Component tests — async stable
+
+```ts
+it('shows skeleton while loading', async () => {
+  const revenueStub = { getMetrics: () => NEVER };
+  await TestBed.configureTestingModule({
+    imports: [RevenueChartComponent],
+    providers: [{ provide: RevenueService, useValue: revenueStub }],
+  }).compileComponents();
+
+  const fixture = TestBed.createComponent(RevenueChartComponent);
+  fixture.componentRef.setInput('filter', { period: '7d' });
+  fixture.detectChanges();
+
+  expect(fixture.nativeElement.querySelector('app-chart-skeleton')).toBeTruthy();
+});
+```
+
+**Never test as primary focus:** private methods, chart library internals, or raw CSS class strings unless they encode critical accessibility.
+
+---
+
+## Test File Co-location
+
+```
+features/
+  revenue/
+    revenue-chart.component.ts
+    revenue-chart.component.spec.ts
+    revenue.service.ts
+    revenue.service.spec.ts
+```
+
+---
+
+## Coverage Philosophy
+
+- Aim for **high confidence, not high percentage**
+- 100% coverage with bad tests is worse than 70% coverage with meaningful tests
+- Always test: error paths, edge cases (empty results, zero values, date boundary), permission failures
+- Skip testing: trivial getters, third-party widget pixels
+
+---
+
+## Do Not
+
+- Do not mock the database in integration tests — use a real DB
+- Do not test `console.log` output
+- Do not use `data-testid` as the only query strategy — prefer roles and accessible names
+- Do not share test state between tests — each test must be fully independent
+- Do not `t.Fatal` inside goroutines — use `t.Errorf` and let the test drain

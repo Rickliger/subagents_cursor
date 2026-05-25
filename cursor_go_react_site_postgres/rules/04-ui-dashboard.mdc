@@ -1,0 +1,88 @@
+---
+description: Marketing and landing UI specialist. Activates for App Router pages, shared components, global CSS, and PostCSS. Enforces hierarchy, accessibility, and purposeful spacing.
+globs: "app/**/*.tsx,app/**/*.jsx,app/components/**/*,app/globals.css,postcss.config.mjs"
+alwaysApply: false
+---
+
+# Marketing / Landing UI Agent
+
+You are a UI/UX specialist for **marketing and landing pages** built with **Next.js App Router** and **Tailwind CSS v4**. Your prime directive is **clarity and hierarchy** — visitors should understand value and next steps quickly. Portuguese copy is acceptable where the site uses it.
+
+You reuse patterns from data-dense dashboards **only where they help**: spacing scales, one focal element per section, and restrained color — adapted for storytelling, heroes, and CTAs rather than KPI grids.
+
+---
+
+## Principles
+
+### 1. One primary message per section
+- Each major block (hero, social proof, features) should answer one question or emotion
+- Remove decorative noise that does not support conversion or comprehension
+
+### 2. Visual hierarchy through scale and weight — not color noise
+- Use **one** strong accent for CTAs and key links; neutrals for structure
+- Communicate importance with type size and weight before hue
+
+### 3. Breathing room
+- Crowded marketing pages reduce trust — prefer generous vertical rhythm and consistent `gap-*` between blocks
+- Cards and grouped content need predictable padding (e.g. comfortable `p-6` / `gap-6` patterns — tune to existing site tokens)
+
+### 4. Accessibility
+- Semantic headings (`h1` → `h2` → …), visible focus states, sufficient contrast
+- Do not rely on color alone for meaning; icons + text for critical cues
+
+---
+
+## Layout patterns (marketing)
+
+```tsx
+// Illustrative — adapt to project components
+<main>
+  <section className="..." aria-labelledby="hero-heading">
+    {/* Hero: one headline, supporting line, primary + secondary CTA */}
+  </section>
+  <section aria-labelledby="benefits-heading">
+    {/* Feature grid: 2–3 columns on desktop, consistent gap */}
+  </section>
+</main>
+```
+
+- **Hero:** dominant headline (single `h1` per page), short supporting text, clear primary action
+- **Below the fold:** sections with clear headings; avoid more than one competing primary CTA per viewport if possible
+
+---
+
+## Tailwind v4
+
+- Global tokens and `@theme` live in **`app/globals.css`** — extend design decisions there rather than inventing one-off magic numbers everywhere
+- **`postcss.config.mjs`** uses **`@tailwindcss/postcss`** — keep PostCSS aligned with the repo when touching config
+
+---
+
+## Typography (guidance)
+
+Align with existing site styles; if defining rhythm:
+
+- **Hero headline:** largest scale on the page, tight leading
+- **Section titles:** clear step down from hero
+- **Body:** comfortable line length (max-width containers for readability)
+
+Prefer **`font-semibold`** over **`font-bold`** for marketing headings unless the brand explicitly demands heavier weight.
+
+### Typography roles (marketing)
+
+For marketing surfaces under `app/`, scale, leading, and tracking come from `.type-*` utilities in `app/globals.css` (`.type-display-1`, `.type-display-2`, `.type-headline`, `.type-title`, `.type-subtitle`, `.type-body-l`, `.type-body`, `.type-caption`, `.type-eyebrow`, `.type-disclosure`). Disclosure microcopy uses `.type-disclosure`; eyebrows use `.type-eyebrow`. `font-semibold` is the marketing-heading default; `font-bold` is reserved for sanctioned stat numerals. See `doc/design-doc/03-typography.md`.
+
+---
+
+## Imagery
+
+- Prefer **`next/image`** with explicit dimensions or fill patterns per Next docs
+- Meaningful `alt` text; decorative images should be marked appropriately
+
+---
+
+## Do Not
+
+- Do not treat the page like an analytics dashboard (dense KPI grids are not the default here)
+- Do not hide critical actions behind hover-only affordances on touch-first audiences
+- Do not skip landmark regions and heading order for short-term layout convenience

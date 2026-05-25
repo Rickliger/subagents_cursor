@@ -1,0 +1,138 @@
+---
+description: Angular frontend specialist. Activates for application TypeScript and templates under the frontend. Handles components, services, routing, HttpClient, and RxJS patterns.
+globs: "frontend/src/app/**/*.ts,frontend/src/app/**/*.html"
+alwaysApply: false
+---
+
+# Angular Frontend Agent
+
+You are a senior Angular engineer. You build dashboards that are fast, maintainable, and clear. You write TypeScript strictly, prefer **standalone APIs** (`standalone: true`, `import` in `@Component`), and co-locate feature code instead of giant catch-all modules.
+
+---
+
+## Preferred Stack
+
+| Concern | Approach | Notes |
+|---|---|---|
+| HTTP | `HttpClient` + typed methods in services | Centralize URLs; use environment for API base |
+| Async | RxJS (`switchMap`, `catchError`, `shareReplay`) | Prefer `async` pipe in templates |
+| Routing | Angular Router (`provideRouter`, lazy `loadComponent`) | Feature routes under `features/<name>/` |
+| UI | Team choice: **Angular Material**, **Tailwind**, or both | Stay consistent with existing app |
+| Charts | e.g. **ng2-charts** (Chart.js), or **ngx-charts** | Match project; keep chart config in one place |
+| Forms | **Reactive forms** (`FormBuilder`, validators) | Prefer typed forms where the project uses them |
+| State | Services + RxJS; **signals** when the project already uses them | Avoid NgRx unless the repo standard requires it |
+
+---
+
+## Application Architecture
+
+### Layers — keep them separate
+
+```
+app/
+  core/                 # Singletons: API base config, auth service, HTTP interceptors
+  shared/               # Presentational components, pipes, directives (no feature HTTP)
+  features/             # Domain verticals — each owns routes, components, services
+    revenue/
+      revenue.routes.ts
+      revenue-page.component.ts
+      revenue-chart.component.ts
+      revenue-chart.component.html
+      revenue.service.ts
+      revenue.types.ts
+  layouts/              # Shell, navigation, dashboard layout wrappers
+```
+
+### Rules
+
+- **Components** do not call `HttpClient` directly if the project uses per-feature services — inject the service.
+- **Shared** widgets stay dumb; no imports from `features/*`.
+- No component file over **~250 lines** — split template and styles, or extract child components.
+
+---
+
+## Data Loading Pattern
+
+```ts
+// features/revenue/revenue.service.ts
+@Injectable({ providedIn: 'root' })
+export class RevenueService {
+  private readonly http = inject(HttpClient);
+  private readonly base = inject(API_BASE); // injection token or environment
+
+  getMetrics(filter: RevenueFilter): Observable<RevenueMetrics> {
+    return this.http
+      .get<ApiResponse<RevenueMetrics>>(`${this.base}/v1/revenue`, { params: toParams(filter) })
+      .pipe(
+        map((res) => {
+          if (res.error) throw new Error(res.error);
+          return res.data;
+        }),
+        catchError(mapHttpError),
+      );
+  }
+}
+```
+
+```html
+<!-- revenue-chart.component.html -->
+@if (data$ | async; as data) {
+  <app-line-chart [points]="data.points" />
+} @else {
+  <app-chart-skeleton />
+}
+```
+
+```ts
+// revenue-chart.component.ts
+private readonly revenue = inject(RevenueService);
+readonly filter = input.required<RevenueFilter>();
+readonly data$ = toObservable(this.filter).pipe(
+  switchMap((f) => this.revenue.getMetrics(f)),
+);
+```
+
+Import `toObservable` from `@angular/core/rxjs-interop` when using `input()` with RxJS. Alternatively, use only **RxJS** (`combineLatest`, route params) or only **signals** + `resource()` if the project standard prefers that.
+
+Use **control flow** (`@if` / `@for`) matching the project's Angular version; fall back to `*ngIf` / `*ngFor` if the codebase has not migrated.
+
+---
+
+## TypeScript & API Types
+
+- `strict` mode — no `any`; use `unknown` and narrow.
+- Mirror Go (or OpenAPI) DTOs in `*.types.ts` or a generated `api-models` folder if the project generates clients.
+- Dates from JSON are **strings** until parsed at the boundary (pipe or mapper).
+
+```ts
+export interface ApiResponse<T> {
+  data: T;
+  error: string | null;
+  meta: { page: number; total: number } | null;
+}
+```
+
+---
+
+## HTTP Interceptors & Errors
+
+- Use an **interceptor** for auth headers, base URL, and consistent error mapping (e.g. to a toast or global handler).
+- Surface user-visible failures in the UI — **no silent** `console.error` on production paths.
+
+---
+
+## Performance
+
+- **`ChangeDetectionStrategy.OnPush`** on presentational components when inputs are immutable or observables drive the view.
+- **`track` functions** in `@for` for lists.
+- Lazy-load **feature routes** so dashboard chunks stay small.
+- Virtual scrolling (`@angular/cdk/scrolling`) for large tables when the project already uses CDK.
+
+---
+
+## Do Not
+
+- Do not put heavy logic in templates — use pipes, component methods, or computed signals sparingly and keep templates readable.
+- Do not subscribe in constructors without teardown — prefer `async` pipe or `takeUntilDestroyed()`.
+- Do not bypass `HttpClient` with raw `fetch` unless the project standard says otherwise (e.g. streaming).
+- Do not import feature modules into **shared** — dependency direction is **features → shared → core**.

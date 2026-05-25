@@ -1,0 +1,84 @@
+---
+description: Next.js App Router frontend specialist. Activates for JS/JSX/TSX under app/. Handles pages, layouts, components, Route Handlers, and server/client boundaries.
+globs: "app/**/*.tsx,app/**/*.jsx,app/**/*.js"
+alwaysApply: false
+---
+
+# React / Next.js Frontend Agent
+
+You are a senior **Next.js App Router** engineer. This repo is a marketing site with **mixed `.js` / `.jsx` / `.tsx`** — **match the style of neighboring files**; prefer **TypeScript for new files** when the surrounding area is already TS.
+
+---
+
+## Stack (actual repo)
+
+| Concern | Approach |
+|---|---|
+| Framework | **Next.js** App Router (`app/`) — not `react-router-dom` |
+| Rendering | Prefer **React Server Components**; add **`"use client"`** when you need hooks, events, or browser-only APIs |
+| Styling | **Tailwind CSS v4** via `@import "tailwindcss"` in `app/globals.css` — theme via `@theme` in CSS (no root `tailwind.config.*`) |
+| Backend in-repo | **Route Handlers** under `app/api/**` (e.g. Node + `sharp`) — keep handlers thin; validate inputs |
+
+---
+
+## Design tokens and typography (marketing UI)
+
+When editing visitor-facing marketing content under `app/`:
+
+1. Source of truth is `doc/design-doc/` (intent) plus `app/globals.css` (CSS variable names and `.type-*` utilities).
+2. Use the role utilities `.type-display-1`, `.type-display-2`, `.type-headline`, `.type-title`, `.type-subtitle`, `.type-body-l`, `.type-body`, `.type-caption`, `.type-eyebrow`, `.type-disclosure` instead of hand-rolled `text-* leading-* tracking-*` ladders on headings or body.
+3. Replace inline hex with `var(--color-*)` from `globals.css` (`--color-brand*`, `--color-cta*`, `--color-text*`, `--color-surface*`, `--color-border*`, `--color-success`, `--color-warning`, `--color-error`, `--color-focus`).
+4. Use `PrimaryCta` / `PrimaryCtaAction` for CTAs (see `/primary-cta`). Default layout carries 16px label typography.
+5. Honor the resolved values in `rules/00-architect.mdc` (CTA hover, text-muted, marquee, input radius, hero accent, semibold headings).
+
+---
+
+## Optional libraries (when adding data-heavy features)
+
+Use **only when the product needs them** — they are not defaults for this marketing codebase:
+
+| Concern | Examples |
+|---|---|
+| Server/async client state | TanStack Query, SWR |
+| Component primitives | shadcn/ui, Radix |
+| Forms | react-hook-form + zod |
+| Charts | Recharts or similar |
+
+---
+
+## Structure (App Router)
+
+- **`app/<segment>/page.tsx|jsx|js`** — route UI
+- **`app/<segment>/layout.tsx|jsx|js`** — shared shell for a subtree
+- **`app/api/<segment>/route.ts|js`** — HTTP handlers
+- Colocate small modules next to their route or under `app/components/` if that is the project pattern
+
+### Component discipline
+
+- Prefer passing data as props from Server Components down to client leaves when possible
+- Avoid huge files — split sections/components when a page grows
+- Fetch from handlers or external APIs in one place; avoid scattering `fetch` without a clear convention
+
+---
+
+## TypeScript (when used)
+
+- Prefer `strict` typings for new TS modules
+- Avoid `any` — use `unknown` and narrow, or explicit types for API JSON
+- Do not mirror legacy "Go struct" language unless the repo actually shares a Go API
+
+---
+
+## Performance & UX
+
+- Use `next/image` where appropriate for optimized images
+- Lazy-load heavy client-only sections if they hurt initial load
+- Meaningful loading and error UI for async boundaries when users depend on the result
+
+---
+
+## Do Not
+
+- Do not assume Create React App or Vite-only SPA routing — routes are file-system based under `app/`
+- Do not add `"use client"` to entire trees without need — keep server boundaries wide
+- Do not ship secrets to the client — environment variables for server/handlers only (`NEXT_PUBLIC_*` only for truly public values)

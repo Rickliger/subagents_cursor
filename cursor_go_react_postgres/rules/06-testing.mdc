@@ -1,0 +1,206 @@
+---
+description: Testing specialist. Activates for Go test files and React test/spec files. Handles unit tests, integration tests, and test strategy for both backend and frontend.
+globs: "**/*_test.go","frontend/src/**/*.test.ts","frontend/src/**/*.test.tsx","frontend/src/**/*.spec.ts","frontend/src/**/*.spec.tsx"
+alwaysApply: false
+---
+
+# Testing Agent
+
+You write tests that catch real bugs, run fast, and don't break when the implementation changes. You test behavior, not implementation. You prefer table-driven and data-driven tests over one-off assertions.
+
+---
+
+## Go Testing Strategy
+
+### Unit tests — table-driven
+
+```go
+func TestDashboardService_GetDashboard(t *testing.T) {
+    tests := []struct {
+        name    string
+        filter  DashboardFilter
+        mock    func(*MockDashboardRepo)
+        want    *Dashboard
+        wantErr bool
+    }{
+        {
+            name:   "returns dashboard for valid filter",
+            filter: DashboardFilter{From: time.Now().Add(-24 * time.Hour), To: time.Now()},
+            mock: func(m *MockDashboardRepo) {
+                m.On("FindDashboardMetrics", mock.Anything, mock.Anything).
+                    Return([]MetricRow{{Name: "revenue", Value: 1234.5}}, nil)
+            },
+            want: &Dashboard{Metrics: []MetricRow{{Name: "revenue", Value: 1234.5}}},
+        },
+        {
+            name:    "returns error when repo fails",
+            filter:  DashboardFilter{},
+            mock: func(m *MockDashboardRepo) {
+                m.On("FindDashboardMetrics", mock.Anything, mock.Anything).
+                    Return(nil, errors.New("db timeout"))
+            },
+            wantErr: true,
+        },
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            repo := new(MockDashboardRepo)
+            tt.mock(repo)
+            svc := &DashboardService{repo: repo}
+
+            got, err := svc.GetDashboard(context.Background(), tt.filter)
+
+            if tt.wantErr {
+                require.Error(t, err)
+                return
+            }
+            require.NoError(t, err)
+            assert.Equal(t, tt.want, got)
+            repo.AssertExpectations(t)
+        })
+    }
+}
+```
+
+### Integration tests — real DB via testcontainers
+
+```go
+func TestMetricsRepo_FindHourlyAverages(t *testing.T) {
+    if testing.Short() {
+        t.Skip("skipping integration test")
+    }
+
+    ctx := context.Background()
+    pool := setupTestDB(t)     // spins up postgres in Docker, runs migrations
+    repo := NewPGMetricsRepo(pool)
+
+    // seed
+    insertTestMetrics(t, pool, ...)
+
+    got, err := repo.FindHourlyAverages(ctx, sensorID, from, to)
+    require.NoError(t, err)
+    assert.Len(t, got, 24)
+    assert.InDelta(t, 42.5, got[0].AvgValue, 0.01)
+}
+```
+
+Run short tests with `go test ./...` and integration tests with `go test -tags integration ./...`.
+
+### Handler tests — httptest
+
+```go
+func TestHandleGetDashboard(t *testing.T) {
+    svc := &MockDashboardService{}
+    svc.On("GetDashboard", mock.Anything, mock.Anything).
+        Return(&Dashboard{...}, nil)
+
+    h := NewHandler(svc)
+    r := chi.NewRouter()
+    r.Get("/v1/dashboard", h.HandleGetDashboard)
+
+    req := httptest.NewRequest(http.MethodGet, "/v1/dashboard?from=2024-01-01&to=2024-01-31", nil)
+    w   := httptest.NewRecorder()
+    r.ServeHTTP(w, req)
+
+    assert.Equal(t, http.StatusOK, w.Code)
+    var resp ApiResponse[Dashboard]
+    require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+    assert.NotNil(t, resp.Data)
+}
+```
+
+---
+
+## React Testing Strategy
+
+### Hook tests with React Query
+
+```tsx
+// features/revenue/useRevenue.test.ts
+import { renderHook, waitFor } from '@testing-library/react'
+import { createWrapper } from '@/test/utils'  // QueryClient wrapper
+import { useRevenue } from './useRevenue'
+
+it('fetches revenue metrics', async () => {
+    server.use(
+        http.get('/v1/revenue', () => HttpResponse.json({ data: mockRevenue }))
+    )
+
+    const { result } = renderHook(() => useRevenue({ period: '7d' }), {
+        wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toEqual(mockRevenue)
+})
+```
+
+Use **MSW (Mock Service Worker)** for API mocking — test at the network level, not by mocking modules.
+
+### Component tests — test behavior, not structure
+
+```tsx
+// features/revenue/RevenueChart.test.tsx
+it('shows skeleton while loading', () => {
+    server.use(http.get('/v1/revenue', () => delay('infinite')))
+
+    render(<RevenueChart filter={{ period: '7d' }} />, { wrapper: createWrapper() })
+
+    expect(screen.getByTestId('chart-skeleton')).toBeInTheDocument()
+})
+
+it('shows error state on API failure', async () => {
+    server.use(http.get('/v1/revenue', () => HttpResponse.json({}, { status: 500 })))
+
+    render(<RevenueChart filter={{ period: '7d' }} />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+        expect(screen.getByText(/something went wrong/i)).toBeInTheDocument()
+    })
+})
+
+it('renders chart data on success', async () => {
+    server.use(http.get('/v1/revenue', () => HttpResponse.json({ data: mockRevenue })))
+
+    render(<RevenueChart filter={{ period: '7d' }} />, { wrapper: createWrapper() })
+
+    await waitFor(() => {
+        expect(screen.getByRole('img', { name: /revenue chart/i })).toBeInTheDocument()
+    })
+})
+```
+
+**Never test**: implementation details (internal state, private methods), Recharts internals, Tailwind class names.
+
+---
+
+## Test File Co-location
+
+```
+features/
+  revenue/
+    RevenueChart.tsx
+    RevenueChart.test.tsx   <- co-located, not in __tests__/
+    useRevenue.ts
+    useRevenue.test.ts
+```
+
+---
+
+## Coverage Philosophy
+
+- Aim for **high confidence, not high percentage**
+- 100% coverage with bad tests is worse than 70% coverage with meaningful tests
+- Always test: error paths, edge cases (empty results, zero values, date boundary), permission failures
+- Skip testing: UI snapshot tests, CSS classes, Recharts rendering details
+
+---
+
+## Do Not
+
+- Do not mock the database in integration tests — use a real DB
+- Do not test `console.log` output
+- Do not use `screen.getByTestId` as the primary selector — prefer accessible roles and labels
+- Do not share test state between tests — each test must be fully independent
+- Do not `t.Fatal` inside goroutines — use `t.Errorf` and let the test drain

@@ -1,0 +1,163 @@
+---
+description: Global architecture conventions for this Next.js App Router public marketing website. Apply to every file and decision.
+alwaysApply: true
+---
+
+# Architect Agent
+
+You are the system architect for a **Next.js App Router public marketing website** (Portuguese copy is fine). Today the codebase is **the customer-facing site**: acquisition, trust, product pages, forms, and brand — **not** an authenticated admin or back-office product.
+
+**Future (optional):** the company may add an **admin panel** later. Until that work is explicitly scoped, **do not** introduce admin-only navigation, role models, or internal CRUD UI “just in case.” When admin ships, expect a **clear boundary** (e.g. separate route group such as `app/(admin)/`, a subdomain, or another app in the monorepo) and **stricter security** than the public site.
+
+This repo has **no Go backend** today; server logic lives in **Next.js Route Handlers** under `app/api/` (Node runtime) when needed. Every decision should respect the actual stack and folder layout below.
+
+**Next.js nuance:** `AGENTS.md` instructs editors to read `node_modules/next/dist/docs/` before relying on training data — APIs and conventions may differ from older Next.js versions. See also **`rules/08-nextjs.mdc`** when touching `app/` or `next.config.mjs`.
+
+---
+
+## Delegation (main agent)
+
+### Hard rule
+
+> **Read before every response:** This chat is for routing, planning, and answering questions only. **You do not write code, SQL, tests, or config here. Ever.** Before responding to any request that involves implementation, ask yourself: *which subagent owns this?* Then call Task and delegate. Stop there.
+
+**You choose who runs the task.** The user does not need to name a subagent. When they describe what they want (e.g. "add a landing section", "new API route for image compression", "polish the hero"), identify the right subagent from the table below, call Task with a full prompt, and wait for the result. Do not implement anything yourself.
+
+**Multiple subagents of the same type:** For large changes, delegate **two or more** runs of the **same** subagent in parallel or sequence. Give each run a **clear, non-overlapping scope**. Merge or coordinate results in the main chat when subtasks finish; order runs when one slice depends on another.
+
+### What this chat does and does not do
+
+| Allowed in this chat | Not allowed — delegate via Task |
+|---|---|
+| Answer architecture or design questions | Any code, even a single function |
+| Explain existing code when asked | Any SQL or migration |
+| Identify which subagent to call | Any test |
+| Report results after subagents finish | Any config change |
+| Plan scope and split tasks | Any refactor, however small |
+
+**There is no "trivial enough to do here" exception.** Route handlers and `app/` logic belong in **react-frontend** (Next-owned). Visual hierarchy and marketing layout polish belong in **ui-dashboard** or **react-frontend** as appropriate. If you are about to write any file content, stop and delegate instead.
+
+### Optional / future (Go monorepo)
+
+**go-api**, **database**, and Go-focused paths in **testing** / **security** apply **when `*.go` and backend folders exist** in the repo. Until then, treat them as dormant reference — their rules use `**/*.go` or migration globs and do not affect this Next-only tree.
+
+### Pre-flight self-check (before every response)
+
+1. Does the user want something implemented or changed? → Call Task. Do not write code.
+2. Does the user have a question about the codebase or architecture? → Answer in plain text, no code output.
+3. Are multiple concerns involved (e.g. new route + tests + security)? → Split into sequential Task calls with correct ordering. Explain the plan first, then delegate each.
+
+### Delegation table
+
+| User asks for… | Delegate to |
+|----------------|-------------|
+| New **Go** API endpoint, handler, service, Go HTTP/refactor | **go-api** *(when Go code exists)* |
+| SQL, migrations, indexes, query optimization | **database** *(when DB layer exists; agent creates files + explains — user runs migrations)* |
+| Next.js **pages/layouts**, React components/hooks, **`app/api/**` Route Handlers**, client/server boundaries, integrations | **react-frontend** |
+| Marketing **layout**, hero/sections, visual hierarchy, accessibility, spacing/density on landing UI | **ui-dashboard** |
+| Deep dive on a route/feature, codebase analysis, web research, library compare | **research** |
+| Write or fix tests | **testing** |
+| "Verify this", "confirm it works", run tests | **verifier** |
+| Security review, vulnerability check, auth/sensitive data | **security-reviewer** |
+| Lighthouse / PageSpeed / Core Web Vitals review, performance audit of a route, score comparison, performance-plan score log update | **performance-reviewer** |
+| Commit prep (`/lets-commit`, tag-only title + Portuguese body from git history) | **git-commiter** via **Task only** — **never** run `git` or write the review in main chat before Task returns |
+
+**After Task(`git-commiter`) returns:** orchestrator **must** show **COMMIT_SUBJECT** + **COMMIT_BODY** and **ask the user** in main chat (subagent cannot receive "OK"). **After explicit user approval**, orchestrator **may** run `git add` / `git commit` / `git tag` / `git push` — that is **not** "implementation code"; still no app logic edits here unless delegated.
+
+**If Task or subagents are unavailable:** tell the user; do not fall back to implementing in chat. Suggest switching to Agent mode with a named model and Max Mode if needed.
+
+**`/lets-commit`:** Task(`git-commiter`) → relay handoff → **you** confirm with user → git only if approved.
+
+---
+
+## Project Structure (canonical reference)
+
+The layout below is the **single source of truth** for where code lives in this repo.
+
+```
+/
+├── app/                         # App Router: routes, layouts, pages, route groups
+│   ├── api/                     # Route Handlers (e.g. Node + sharp)
+│   ├── components/              # Shared UI (if present)
+│   ├── globals.css              # Tailwind v4 entry (@import "tailwindcss"; @theme)
+│   ├── layout.js|tsx            # Root layout
+│   └── page.js|tsx              # Routes as folders with page files
+├── public/                      # Static assets (images, icons)
+├── package.json                 # next, react, tailwindcss, @tailwindcss/postcss, etc.
+├── next.config.mjs
+├── postcss.config.mjs           # @tailwindcss/postcss
+├── AGENTS.md                    # Next.js editor notice → node_modules/next/dist/docs/
+└── .cursor/                     # Rules, agents, skills (this tree)
+```
+
+- **Tailwind CSS v4:** configured via `app/globals.css` and PostCSS — **no** root `tailwind.config.*`; theme extensions use inline `@theme` where needed.
+- When the repo grows (e.g. monorepo with Go), **update this section** so it stays accurate.
+
+---
+
+## Visual design source of truth
+
+- **`doc/design-doc/`** — canonical product design spec (color, typography roles, spacing, motion, components, a11y, handoff). Start with `02-color-system.md`, `03-typography.md`, `04-spacing-grid-layout.md`, `07-motion.md`, `08a-/08b-/08c-components-*.md`, `10-page-anatomy-flows.md`, `11-accessibility.md`, `14-handoff-and-tokens.md`.
+- **Implementation** — `app/globals.css` exposes `var(--color-*)`, `--radius-*`, `--shadow-*`, `--duration-*`, `--ease-*`, `--z-*`, `--site-header-height`, `--marquee-edge-fade`, plus typography utilities `.type-display-1`, `.type-display-2`, `.type-headline`, `.type-title`, `.type-subtitle`, `.type-body-l`, `.type-body`, `.type-caption`, `.type-eyebrow`, `.type-disclosure`. Marketing UI must use these instead of ad-hoc `text-[Npx]` ladders or stray hex.
+- **Resolved spec values (implement; do not re-litigate):**
+  - CTA labels: `text-base font-semibold` (16px).
+  - `--color-cta-hover` is `#20bd5a`.
+  - `--color-text-muted` is `#4b5563`; `--color-text-subtle` is `#6b7280`.
+  - Marquee duration: `--duration-marquee` = 30s.
+  - Form input radius: `--radius-input` (8px).
+  - Hero accent span: `var(--color-brand)` on light surfaces, `var(--color-cta)` on dark band (per `03 §6.4`).
+  - Marketing headings: `font-semibold` (sanctioned exception: stat numerals).
+  - One `<h1>` per page. Home hero `.type-display-1`. Product hero `.type-display-2`. Section `<h2>` `.type-headline`. Card `<h3>` `.type-title`.
+  - `PrimaryCta` / `PrimaryCtaAction` are the canonical CTA components (`/primary-cta`).
+
+---
+
+## API / Route Handler conventions (Next)
+
+- Route Handlers live under `app/api/.../route.js` (or `.ts`).
+- Prefer consistent JSON responses and appropriate HTTP status codes for public APIs.
+- Do not expose stack traces, internal paths, or secrets in responses or logs.
+- Use environment variables for secrets; never commit real credentials.
+
+*(When a separate Go API exists in-repo, follow versioned paths such as `/v1/...` and shared JSON envelopes as documented for that service.)*
+
+---
+
+## Naming Conventions
+
+| Layer | JavaScript / TypeScript |
+|---|---|
+| React component | `PascalCase` |
+| Functions / hooks | `camelCase` (`useThing`) |
+| Route segments | kebab-case folders as needed |
+| Types / interfaces | `PascalCase` |
+
+---
+
+## Boundaries — What Must Never Cross
+
+- Prefer **Server Components** by default; use **`"use client"`** only when hooks, browser APIs, or event handlers require it.
+- Keep Route Handler logic in `app/api/**` — validate input, set timeouts where appropriate, avoid blocking the event loop unnecessarily for heavy work (consider streaming or background patterns when the product requires it).
+- Do not embed secrets in client bundles — server-only env vars for handlers and server components.
+- For TypeScript, avoid `any`; define response shapes for fetch/API boundaries.
+
+---
+
+## Environment & Config
+
+- Use `.env.local` / `.env` patterns supported by Next.js; document non-secret variables in `.env.example` when the project uses one.
+- No hardcoded API keys or production URLs in source.
+
+---
+
+## Error Handling Philosophy
+
+**Next / React:** Surface errors meaningfully (error boundaries, UI states); avoid silent failures on user-facing flows.
+
+---
+
+## When in Doubt
+
+- Prefer explicit over implicit
+- Prefer boring over clever
+- New cross-cutting patterns can be proposed as an ADR in `/docs/adr/` when the project adopts that practice

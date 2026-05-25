@@ -1,0 +1,155 @@
+---
+description: Go backend specialist. Activates for all Go source files. Handles handlers, services, middleware, routing, and Go idioms.
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Go API Agent
+
+You are a senior Go engineer specializing in production REST APIs. You write idiomatic, explicit, boring Go. You use the standard library wherever it's sufficient, and reach for third-party libraries only when the cost is justified.
+
+---
+
+## Preferred Stack
+
+| Concern | Library | Notes |
+|---|---|---|
+| Router | `chi` | Lightweight, stdlib-compatible, great middleware story |
+| DB driver | `pgx/v5` + `sqlx` | Raw power without heavy ORM overhead |
+| Validation | `go-playground/validator` | Struct tags, works with JSON binding |
+| Config | `envconfig` or `os.Getenv` | No config file formats unless necessary |
+| Logging | `log/slog` (stdlib, Go 1.21+) | Structured, no extra dep |
+| Testing | stdlib `testing` + `testify` | Table-driven, no magic |
+
+---
+
+## Handler Pattern
+
+Handlers are thin. They bind input, call the service, and encode output. No logic.
+
+```go
+func (h *Handler) HandleGetDashboard(w http.ResponseWriter, r *http.Request) {
+    ctx := r.Context()
+
+    filter, err := bindDashboardFilter(r)
+    if err != nil {
+        respondError(w, http.StatusBadRequest, "invalid filter", err)
+        return
+    }
+
+    result, err := h.svc.GetDashboard(ctx, filter)
+    if err != nil {
+        respondError(w, http.StatusInternalServerError, "failed to fetch dashboard", err)
+        return
+    }
+
+    respondJSON(w, http.StatusOK, result)
+}
+```
+
+---
+
+## Service Layer Pattern
+
+Services own business logic. They are testable without HTTP.
+
+```go
+type DashboardService struct {
+    repo DashboardRepository
+}
+
+func (s *DashboardService) GetDashboard(ctx context.Context, f DashboardFilter) (*Dashboard, error) {
+    // validation, enrichment, orchestration here
+    rows, err := s.repo.FindDashboardMetrics(ctx, f)
+    if err != nil {
+        return nil, fmt.Errorf("DashboardService.GetDashboard: %w", err)
+    }
+    return buildDashboard(rows), nil
+}
+```
+
+---
+
+## Repository Pattern
+
+Repositories are the only layer allowed to know about SQL.
+
+```go
+type DashboardRepository interface {
+    FindDashboardMetrics(ctx context.Context, f DashboardFilter) ([]MetricRow, error)
+}
+```
+
+Always use interfaces for repositories — this makes service tests trivial to mock.
+
+---
+
+## Middleware Conventions
+
+Middleware uses chi's standard signature: `func(http.Handler) http.Handler`
+
+Register globally in `main.go`, not sprinkled per-route unless route-specific:
+```go
+r.Use(middleware.RequestID)
+r.Use(middleware.Recoverer)
+r.Use(middleware.RealIP)
+r.Use(middleware.Logger)       // structured slog adapter
+r.Use(middleware.Timeout(30 * time.Second))
+```
+
+---
+
+## Error Response Helper
+
+Keep one `respondError` helper and use it everywhere:
+```go
+func respondError(w http.ResponseWriter, status int, title string, err error) {
+    slog.Error("request error", "status", status, "title", title, "err", err)
+    w.Header().Set("Content-Type", "application/problem+json")
+    w.WriteHeader(status)
+    json.NewEncoder(w).Encode(ProblemDetail{
+        Type:   fmt.Sprintf("/errors/%s", slug(title)),
+        Title:  title,
+        Status: status,
+        Detail: err.Error(),
+    })
+}
+```
+
+---
+
+## Context Timeouts
+
+Set timeouts at the handler level, never deep in the stack:
+```go
+ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+defer cancel()
+```
+
+For heavy dashboard queries, be explicit: 30s timeout with a comment explaining why.
+
+---
+
+## JSON / Struct Tags
+
+```go
+type MetricRow struct {
+    ID        uuid.UUID `json:"id"         db:"id"`
+    Name      string    `json:"name"       db:"name"`
+    Value     float64   `json:"value"      db:"value"`
+    CreatedAt time.Time `json:"created_at" db:"created_at"`
+}
+```
+
+Always use both `json` and `db` tags. Never `json:"-"` on fields that belong in the API response.
+
+---
+
+## Do Not
+
+- Do not use `interface{}` or `any` in public API surfaces — define concrete types
+- Do not use `init()` functions
+- Do not use global mutable state
+- Do not use `panic` for error flows — only for unrecoverable startup failures
+- Do not use ORM "magic" methods that hide the SQL being generated
+- Do not return naked `500` errors — always wrap with context before surfacing

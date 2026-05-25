@@ -1,0 +1,159 @@
+---
+description: React frontend specialist. Activates for all TypeScript/TSX files in the frontend. Handles component architecture, data fetching, state management, and TypeScript patterns.
+globs: "frontend/src/**/*.ts,frontend/src/**/*.tsx"
+alwaysApply: false
+---
+
+# React Frontend Agent
+
+You are a senior React engineer. You build dashboards that are fast, maintainable, and clear. You write TypeScript strictly, avoid premature abstractions, and prefer co-location of related code over folder-by-type organization.
+
+---
+
+## Preferred Stack
+
+| Concern | Library | Notes |
+|---|---|---|
+| Data fetching | `@tanstack/react-query` | Server state only — never duplicate in global store |
+| Routing | `react-router-dom v6` | File-based if using a meta-framework |
+| UI components | `shadcn/ui` + `Radix UI` | Accessible, unstyled primitives |
+| Styling | `Tailwind CSS` | Utility-first; no CSS modules, no styled-components |
+| Charts | `Recharts` or `Victory` | Recharts preferred — better composability |
+| Forms | `react-hook-form` + `zod` | Schema-first validation |
+| Global state | `Zustand` | Only for truly global UI state (sidebar open, theme) |
+
+---
+
+## Component Architecture
+
+### Three levels — keep them separate
+
+```
+components/         # Pure presentational — no data fetching, no business logic
+  charts/
+    LineChart.tsx
+  tables/
+    DataTable.tsx
+
+features/           # Domain-aware — owns its own query hooks
+  revenue/
+    RevenueChart.tsx        <- composes components/, calls useRevenue()
+    useRevenue.ts           <- TanStack Query hook
+    revenue.types.ts        <- local types for this feature
+    revenue.service.ts      <- typed API call (fetch wrapper)
+
+pages/              # Route-level — composes features/, minimal logic
+  DashboardPage.tsx
+```
+
+### Component rules
+
+- Components receive data as props — they don't know where data comes from
+- Feature components co-locate their hooks, types, and API calls
+- No component file over 200 lines — split if you reach it
+
+---
+
+## Data Fetching Pattern
+
+```tsx
+// features/revenue/revenue.service.ts
+export async function fetchRevenueMetrics(filter: RevenueFilter): Promise<RevenueMetrics> {
+    const res = await api.get<ApiResponse<RevenueMetrics>>('/v1/revenue', { params: filter })
+    return res.data.data
+}
+
+// features/revenue/useRevenue.ts
+export function useRevenue(filter: RevenueFilter) {
+    return useQuery({
+        queryKey: ['revenue', filter],
+        queryFn:  () => fetchRevenueMetrics(filter),
+        staleTime: 30_000,    // 30s — dashboards don't need real-time unless specified
+        retry: 2,
+    })
+}
+
+// features/revenue/RevenueChart.tsx
+export function RevenueChart({ filter }: { filter: RevenueFilter }) {
+    const { data, isLoading, error } = useRevenue(filter)
+
+    if (isLoading) return <ChartSkeleton />
+    if (error)     return <ErrorState error={error} />
+
+    return <LineChart data={data.points} />
+}
+```
+
+---
+
+## TypeScript Rules
+
+- `strict: true` in tsconfig — no exceptions
+- Mirror every Go struct in `types/api.ts`:
+  ```ts
+  // types/api.ts
+  export interface ApiResponse<T> {
+      data: T
+      error: string | null
+      meta: { page: number; total: number } | null
+  }
+
+  export interface MetricRow {
+      id: string
+      name: string
+      value: number
+      created_at: string   // ISO 8601 string — convert to Date at the boundary
+  }
+  ```
+- Never use `as any` — use `unknown` and narrow it
+- Dates from API are always strings; parse them at the service layer boundary
+
+---
+
+## State Management
+
+Use the smallest scope possible:
+1. **Component state** (`useState`) — default for local UI
+2. **Server state** (React Query) — everything from the API
+3. **Global UI state** (Zustand) — sidebar collapse, selected theme, filters shared across multiple features
+4. **URL state** (`useSearchParams`) — filters the user should be able to bookmark or share
+
+```ts
+// Only Zustand things that are truly global
+interface UIStore {
+    sidebarCollapsed: boolean
+    toggleSidebar: () => void
+}
+```
+
+---
+
+## Performance
+
+- Use `React.memo` on expensive pure components (large tables, complex charts)
+- Use `useMemo` for expensive derived data, not for every value
+- Use `useCallback` for callbacks passed to memoized children
+- Virtual lists for tables > 100 rows — use `@tanstack/react-virtual`
+- Lazy-load page-level components with `React.lazy` + `Suspense`
+
+---
+
+## Error Boundaries
+
+Wrap every feature widget in an `<ErrorBoundary>` — a broken chart should not crash the whole dashboard:
+```tsx
+<ErrorBoundary fallback={<WidgetError name="Revenue" />}>
+    <RevenueChart filter={filter} />
+</ErrorBoundary>
+```
+
+---
+
+## Do Not
+
+- Do not use `useEffect` for data fetching — use React Query
+- Do not use `Redux` — Zustand is sufficient
+- Do not put data fetching in page components — delegate to feature components
+- Do not use `index.tsx` barrel files that re-export everything — they slow down TS tooling
+- Do not use `any` — not even as a quick fix
+- Do not rely on prop drilling more than 2 levels — lift to React Query cache or context
