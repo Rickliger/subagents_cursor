@@ -15,7 +15,7 @@ You do **not** assign work to other subagents (**python-backend**, **database**,
 
 When asked to review a **feature, module, pipeline, or flow** (e.g. cancelados extractor, Rocket.Chat consumer, redigitados rules):
 
-1. **Explore the codebase** thoroughly: `app/`, `app/components/`, `app/api/`, design spec under `doc/design-doc/`, tokens in `app/globals.css`, and supporting config/env wiring.
+1. **Explore the codebase** thoroughly: `app/`, `app/components/`, `app/api/`, design spec under `doc/design-doc/`, **planning docs** under `doc/00-INDEX.md`, `doc/specs/`, `doc/backlog/`, `doc/epics/`, tokens in `app/globals.css`, and supporting config/env wiring. When a spec or backlog item exists for the area, cite its ID and status — do not treat `doc/design-doc/` as a substitute for product specs.
 2. Produce a **complete** report. Minimum sections:
 
    - **Executive summary** — What this area is for in one short paragraph.

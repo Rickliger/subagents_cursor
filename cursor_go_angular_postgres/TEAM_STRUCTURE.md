@@ -1,12 +1,28 @@
 # Team structure (Cursor)
 
-How **subagents**, **rules**, and **skills** fit together for this **Go + Angular + Postgres** dashboard. This file is **reference documentation only** — all behavioral instructions live exclusively in `00-architect.mdc`.
+How **subagents**, **rules**, and **skills** fit together for this **Go + Angular + Postgres** dashboard. Behavioral routing lives in `rules/00-architect.mdc`. **Planning source of truth:** [`doc/00-INDEX.md`](../doc/00-INDEX.md).
+
+This file is **reference documentation only** — all behavioral instructions live exclusively in `00-architect.mdc`.
 
 ---
 
 ## Main idea
 
-The main agent (orchestrator) routes each user request to the correct subagent via Task. The user does not need to name a subagent. For large work, multiple subagents of the same type may run in parallel or sequence, each with a clear, non-overlapping scope.
+The main agent (orchestrator) routes each user request to the correct subagent via Task. Before feature work, read **`doc/00-INDEX.md`**. Classify work:
+
+- **Backlog** `doc/backlog/BNNN-*.md` — small fix, one file per item (e.g. B001 email validation, B002 save not persisting).
+- **Spec** `doc/specs/NNNN-*.md` — large feature (e.g. 0001 reports module, 0002 JWT auth).
+- **Epic** `doc/epics/` — multi-week analysis (E001).
+
+No INDEX, backlog items use subsections **Implementados** / **Propostos** (not a Status column). Specs and epics keep a **Status** column in their table.
+
+Closing a backlog item requires **verifier** (or explicit audit when the user asks *"revisa o que falta"*) before moving the line to **Implementados**. The implementing agent must not update the INDEX alone.
+
+In a fresh chat (no prior context), the architect can audit via prompts: *"Status do projeto"*, *"Revisa o que falta"*, *"Revisa o que já foi"*, or *"Implementa B001"* — see `rules/00-architect.mdc` § Auditoria.
+
+See `rules/00-architect.mdc` for delegation examples.
+
+The user does not need to name a subagent. For large work, multiple subagents of the same type may run in parallel or sequence, each with a clear, non-overlapping scope.
 
 Rules apply automatically when a file matching a glob is edited. Subagents run in separate contexts for focused work. Skills are short repeatable workflows in `.cursor/skills/`.
 
@@ -31,10 +47,16 @@ Rules apply automatically when a file matching a glob is edited. Subagents run i
 | **database** | SQL, migrations (files only), indexes, repos, query tuning | Migrations created + explained; never executed by the agent — user runs them |
 | **angular-frontend** | Components, services, routes, HttpClient, RxJS, templates | New/refactor UI logic and API integration |
 | **ui-dashboard** | Layout, KPIs, charts, clarity, density | "Less cluttered", hierarchy, widget patterns |
-| **research** | Full codebase dives + web research (cited) + library eval | Route/page analysis, external docs, comparisons; reports in English |
+| **research** | Full codebase dives + web research (cited) + library eval | `doc/specs/`, code; reports in English |
 | **testing** | Go + Angular tests, run suites | New tests, fix failures |
-| **verifier** | Skeptical check: implementation + tests | After "done"; confirm behavior |
+| **verifier** | Skeptical check: implementation + tests vs backlog/spec aceite; gate before INDEX → Implementados | After "done"; confirm behavior; required before closing backlog items |
 | **security-reviewer** | Vulnerabilities Go + Angular | Auth, secrets, sensitive flows, requested audit |
+
+### Cross-feature work
+
+1. Read spec or backlog item cited in the task (`Backlog BNNN` / `Spec 000N`).
+2. **database** (migration) → **go-api** (endpoint) → **angular-frontend** (UI) when all layers change.
+3. **verifier** + **security-reviewer** when auth or sensitive data involved.
 
 ### Grouping
 
@@ -44,11 +66,24 @@ Rules apply automatically when a file matching a glob is edited. Subagents run i
 
 ---
 
+## Documentation map
+
+| Location | Purpose |
+|----------|---------|
+| [`doc/00-INDEX.md`](../doc/00-INDEX.md) | Status vitrine — **start here**; backlog in **Implementados** / **Propostos** subsections |
+| [`doc/backlog/`](../doc/backlog/) | Small fixes — one file per item (B001, B002, …); move to Implementados after verifier |
+| [`doc/specs/`](../doc/specs/) | Numbered specs with acceptance criteria |
+| [`doc/epics/`](../doc/epics/) | Large multi-doc initiatives |
+| [`doc/adr/`](../doc/adr/) | Architecture Decision Records |
+| [`docs/`](../docs/) | Runbooks (deploy, backup, integrations) |
+
+---
+
 ## Rules (`.cursor/rules/`)
 
 | File | Scope |
 |------|--------|
-| `00-architect.mdc` | Always — delegation hard rule, project structure, API envelope, boundaries, multi-subagent policy |
+| `00-architect.mdc` | Always — delegation, project structure, **doc/00-INDEX**, planning flow |
 | `01-go-api.mdc` | `**/*.go` |
 | `02-database.mdc` | Migrations, repos, SQL; migrations: create + explain only |
 | `03-angular-frontend.mdc` | `frontend/src/app/**/*.ts`, `**/*.html` under app |
@@ -68,12 +103,13 @@ Rules apply automatically when a file matching a glob is edited. Subagents run i
 
 ## Skills (`.cursor/skills/`)
 
-Checklist-style flows for repeatable sequences: new endpoint, new Angular feature, dashboard widget, SQL migration naming.
+**go-new-endpoint**, **angular-new-feature**, **sql-migration**, **dashboard-new-widget** — follow project conventions; check related spec in `doc/specs/` or backlog in `doc/backlog/` when applicable.
 
 ---
 
 ## Summary
 
+- One planning index: **`doc/00-INDEX.md`** for humans and all agents.
 - 8 subagents covering API, data layer, Angular, dashboard UX, research, tests, verification, security.
 - Database agent writes migration SQL and explains; user applies migrations.
 - Research reports are in English; web sources cited when used.

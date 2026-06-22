@@ -31,6 +31,7 @@ Instead, finish with a clear **`### Handoff (for parent agent)`** block (see Fas
    - `git log -20 --oneline --decorate` — recent commits and tags.
 2. **Change review:** short **from → to**, grouped (**backend**, **frontend**, **migrations / infra**, **tooling**, **docs**). No file-by-file unless the Task prompt asks.
 3. Hygiene one-liners if needed (generated noise, junk paths).
+4. If the work implements a tracked item, mention **`Backlog BNNN`** or **`Spec 000N`** in **`COMMIT_BODY`** (Portuguese bullets) when applicable — infer from diff paths, Task prompt, or changes under `doc/backlog/` / `doc/specs/`.
 
 ### Fase 2 — Proposta (versão + mensagens)
 

@@ -15,6 +15,93 @@ This repo has **no Go backend** today; server logic lives in **Next.js Route Han
 
 ---
 
+## Planejamento — o que registrar onde (obrigatório)
+
+> **IMPORTANTE:** `doc/design-doc/` é documentação **visual** (cores, tipografia, componentes, motion). `doc/specs/` e `doc/backlog/` são **planejamento de produto/engenharia** — **não confundir**. Design-doc não substitui spec; spec não substitui design-doc.
+
+Ler **`doc/00-INDEX.md`** antes de planejar ou delegar qualquer trabalho.
+
+| Tamanho | Onde | ID | Exemplo neste repo |
+|---------|------|-----|-------------------|
+| **Bug / fix pequeno** (1 tela, 1 PR) | `doc/backlog/BNNN-slug.md` — **1 arquivo por item** | `B001`, `B002`, … | link quebrado no hero; validação do form de contato |
+| **Feature / integração** | `doc/specs/NNNN-slug.md` | `0001`, `0002`, … | API de captura de leads; integração CMS/blog |
+| **Épico grande** (semanas, multi-doc) | `doc/epics/<nome>/` | `E001`, … | redesign multi-página, migração de conteúdo |
+| **Runbook** | `docs/` na raiz | — | deploy, CDN, operação |
+
+### Regra de ouro
+
+- **Não** crie spec `000N` para correção pequena → use **`doc/backlog/BNNN-*.md`**.
+- **Não** agrupe bugs independentes no mesmo arquivo → **um bug = um arquivo**.
+- Agrupe **só** se for a mesma causa ou a mesma PR.
+- Promova backlog → spec **só** se crescer (Next + Go + regra de negócio + ~>1 dia).
+
+### Formato do INDEX — backlog
+
+No [`doc/00-INDEX.md`](../doc/00-INDEX.md), backlog usa duas subseções:
+
+- **Implementados** — aceite `[x]`; item conferido (ver abaixo).
+- **Propostos** — aceite `[ ]` ou `Status: proposto`.
+
+Specs/épicos continuam com coluna **Status** na tabela (não usam subseções Implementados/Propostos).
+
+### Fechar item (implementado)
+
+1. Marcar `[x]` nos critérios do arquivo backlog/spec.
+2. Atualizar `Status: implementado` no topo do arquivo.
+3. Backlog: mover linha para subseção **Implementados** no INDEX; remover de **Propostos**.
+4. **Conferência:** delegar **verifier** (preferido) **ou** revisão explícita INDEX + código quando o usuário pedir *"revisa o que falta"*. Quem implementou **não** marca implementado sozinho sem passo 3–4.
+
+### Auditoria (chat zerado)
+
+| Pedido do usuário | Ação do arquiteto |
+|-------------------|-------------------|
+| *"Status do projeto"* | Ler INDEX; resumir proposto / parcial / implementado |
+| *"Revisa o que falta"* | INDEX + ler arquivos + amostra no código; **não** implementar |
+| *"Revisa o que já foi"* | Cruzar Implementados + specs `implementado` com código; listar divergências |
+| *"Implementa B001"* | Task(subagent) com aceite do arquivo |
+
+### Fluxo do arquiteto
+
+1. Pedido → ler INDEX + buscar item em `doc/backlog/` ou `doc/specs/`.
+2. **Fix sem arquivo** → criar `doc/backlog/BNNN-slug.md`; linha em **Propostos**; próximo ID no INDEX.
+3. **Feature sem spec** → `doc/specs/NNNN-slug.md` + linha no INDEX **antes** de delegar.
+4. Delegar: `Backlog BNNN` ou `Spec 000N` + escopo + aceite.
+5. Ao concluir implementação: **verifier** (ou auditoria) → então passos de "Fechar item".
+
+### Template backlog (curto — copiar)
+
+```markdown
+# BNNN — Título curto
+
+Status: proposto
+Escopo: app/... ou cmd/api/... (path exato)
+
+## Problema
+…
+
+## Aceite
+- [ ] …
+
+## Relacionado
+Spec 0001 / E001 / —
+```
+
+### Exemplos concretos (delegação)
+
+**Usuário:** "O CTA do hero aponta para URL errada."
+→ Ler ou criar `doc/backlog/B001-hero-cta-link.md` → Task(**react-frontend**, `app/`, prompt: `Backlog B001` + aceite).
+
+**Usuário:** "Form de contato aceita e-mail inválido."
+→ [`doc/backlog/B002-validacao-email-contato.md`](../doc/backlog/B002-validacao-email-contato.md) — **implementado**; não reimplementar salvo regressão.
+
+**Usuário:** "Implementar API de captura de leads com Go."
+→ Spec [`0001`](../doc/specs/0001-lead-capture-api.md) — **não** backlog; pode envolver **go-api** + **database** + **react-frontend**.
+
+**Usuário:** "Nova página de produto — só layout e copy."
+→ Consultar **`doc/design-doc/`** (visual); se escopo > fix, spec ou backlog conforme tabela acima — design-doc **não** substitui backlog/spec.
+
+---
+
 ## Delegation (main agent)
 
 ### Hard rule
@@ -31,6 +118,7 @@ This repo has **no Go backend** today; server logic lives in **Next.js Route Han
 |---|---|
 | Answer architecture or design questions | Any code, even a single function |
 | Explain existing code when asked | Any SQL or migration |
+| Read/update **planning docs** (`doc/00-INDEX.md`, `doc/specs/`, `doc/backlog/`) when user asks to organize work | Application code, tests, `.env` |
 | Identify which subagent to call | Any test |
 | Report results after subagents finish | Any config change |
 | Plan scope and split tasks | Any refactor, however small |
@@ -43,9 +131,12 @@ This repo has **no Go backend** today; server logic lives in **Next.js Route Han
 
 ### Pre-flight self-check (before every response)
 
-1. Does the user want something implemented or changed? → Call Task. Do not write code.
-2. Does the user have a question about the codebase or architecture? → Answer in plain text, no code output.
-3. Are multiple concerns involved (e.g. new route + tests + security)? → Split into sequential Task calls with correct ordering. Explain the plan first, then delegate each.
+1. Pedido novo? → Ler `doc/00-INDEX.md`; classificar **backlog (B)** vs **spec (000N)** vs **epic (E)**; polish visual → `doc/design-doc/` (não substitui backlog/spec); auditoria se pedido.
+2. Implementação? → Task(subagent); `Backlog BNNN` ou `Spec 000N` + aceite + paths.
+3. Pergunta de arquitetura? → Responder em texto; sem código.
+4. Múltiplas concerns (route + Go API + tests + security)? → Task sequenciais; explicar plano antes de delegar.
+5. Concluiu? → **verifier** ou revisão doc+código → então INDEX + `[x]`.
+6. Auth, secrets, ou Route Handlers públicos? → Incluir **security-reviewer** na cadeia quando aplicável.
 
 ### Delegation table
 
@@ -76,12 +167,23 @@ The layout below is the **single source of truth** for where code lives in this 
 
 ```
 /
+├── doc/                         # Documentação central
+│   ├── 00-INDEX.md              # Vitrine de planejamento (ler primeiro)
+│   ├── design-doc/              # Design system VISUAL (cores, tipografia, componentes)
+│   ├── backlog/                 # B001, B002, … — 1 arquivo por fix pequeno
+│   ├── specs/                   # 0001, 0002, … — features grandes
+│   ├── epics/                   # E001, … — análises longas
+│   └── adr/                     # Decisões arquiteturais
+├── docs/                        # Runbooks (deploy, operação) — opcional
 ├── app/                         # App Router: routes, layouts, pages, route groups
 │   ├── api/                     # Route Handlers (e.g. Node + sharp)
 │   ├── components/              # Shared UI (if present)
 │   ├── globals.css              # Tailwind v4 entry (@import "tailwindcss"; @theme)
 │   ├── layout.js|tsx            # Root layout
 │   └── page.js|tsx              # Routes as folders with page files
+├── cmd/api/                     # Go API entry (when backend exists)
+├── internal/                    # handler, service, repository (when Go exists)
+├── migrations/                  # SQL migrations (when DB exists)
 ├── public/                      # Static assets (images, icons)
 ├── package.json                 # next, react, tailwindcss, @tailwindcss/postcss, etc.
 ├── next.config.mjs
@@ -160,4 +262,4 @@ The layout below is the **single source of truth** for where code lives in this 
 
 - Prefer explicit over implicit
 - Prefer boring over clever
-- New cross-cutting patterns can be proposed as an ADR in `/docs/adr/` when the project adopts that practice
+- New cross-cutting patterns can be proposed as an ADR in `doc/adr/` when the project adopts that practice

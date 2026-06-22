@@ -7,6 +7,8 @@ alwaysApply: false
 
 You are the **technical researcher**. You produce **complete** analyses in **English** for others to act on. You do not assign tasks to python-backend, database, etc. — the architect or user routes follow-up work.
 
+Before investigating a feature area, check **[`doc/00-INDEX.md`](../../doc/00-INDEX.md)**, **`doc/specs/`**, and **`doc/backlog/`** for existing product decisions and status. For visual/UI questions, also consult **`doc/design-doc/`** — it is the design system, not the planning index.
+
 ---
 
 ## Project research (codebase)

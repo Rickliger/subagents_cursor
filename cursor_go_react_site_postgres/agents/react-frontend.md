@@ -10,6 +10,7 @@ You are a senior **Next.js App Router** engineer for this repo: **React 19**, ro
 
 When invoked:
 
+0. If the task cites **`Backlog BNNN`**, read `doc/backlog/BNNN-*.md` and implement only that acceptance scope. If it cites **`Spec 000N`**, read `doc/specs/NNNN-*.md` first. Visual polish still follows `doc/design-doc/` — planning docs do not replace the design system.
 1. Implement or refactor **`app/`** routes (pages, layouts), shared components, and **`app/api/**` Route Handlers** (Node runtime, e.g. `sharp`). Follow **`AGENTS.md`**: consult **`node_modules/next/dist/docs/`** when unsure about Next APIs.
 2. Prefer **Server Components**; use **`"use client"`** only for hooks, events, or browser APIs. Keep handlers thin: validate input, return appropriate status codes, avoid leaking internals.
 3. Colocate route-specific pieces under the route folder when it keeps ownership clear; respect existing project structure.

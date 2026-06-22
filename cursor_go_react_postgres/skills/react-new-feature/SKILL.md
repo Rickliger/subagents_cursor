@@ -5,7 +5,7 @@ description: Adds a new frontend feature (component + hook + API service) follow
 
 # Add a New React Feature
 
-Use this workflow when adding a new data-backed feature (e.g. a chart, table, or widget). Keeps components presentational and co-locates hook, types, and API call.
+Use this workflow when adding a new data-backed feature (e.g. a chart, table, or widget). Check [`doc/00-INDEX.md`](../../doc/00-INDEX.md) for related specs before implementing. Keeps components presentational and co-locates hook, types, and API call.
 
 ## Checklist
 

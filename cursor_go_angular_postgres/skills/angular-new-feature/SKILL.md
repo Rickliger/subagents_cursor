@@ -7,6 +7,8 @@ description: Adds a new frontend feature (routed page + components + service) fo
 
 Use this workflow when adding a new data-backed feature (e.g. a chart, table, or widget). Keep **presentational** pieces dumb; put HTTP and mapping in an **injectable service**.
 
+If the feature is part of a planned initiative, check [`doc/00-INDEX.md`](../../doc/00-INDEX.md) and related specs in [`doc/specs/`](../../doc/specs/). If the task cites `Backlog BNNN`, read that file in [`doc/backlog/`](../../doc/backlog/) for acceptance criteria.
+
 ## Checklist
 
 - [ ] Create folder under `frontend/src/app/features/<feature-name>/`

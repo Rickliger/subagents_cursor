@@ -5,6 +5,7 @@ Short checklist for this repo (**Next.js App Router**, **`app/`**, **Tailwind v4
 ## 1. Pick the URL segment
 
 - Decide path: e.g. `/sobre` → folder **`app/sobre/`**.
+- **Optional:** check [`doc/00-INDEX.md`](../../doc/00-INDEX.md) for route-level feature specs or backlog items tied to this path.
 
 ## 2. Add the page file
 

@@ -17,7 +17,7 @@ Reuse `PrimaryCta`, `var(--color-*)`, and the `.type-*` typography utilities def
 
 **Repo note:** This workspace is a **Next.js App Router** site under **`app/`**. For a new **route/page**, use **`nextjs-new-route`** first. Use **this** skill for a **data-backed UI slice** co-located with features (adapt paths from `frontend/src/features/` to `app/...` or `app/components/...` as the project does).
 
-Use this workflow when adding a new data-backed feature (e.g. a chart, table, or widget). Keeps components presentational and co-locates hook, types, and API call.
+Use this workflow when adding a new data-backed feature (e.g. a chart, table, or widget). Check [`doc/00-INDEX.md`](../../doc/00-INDEX.md) and [`doc/specs/`](../../doc/specs/) for related specs first. Keeps components presentational and co-locates hook, types, and API call.
 
 ## Checklist
 

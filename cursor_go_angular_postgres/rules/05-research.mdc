@@ -7,6 +7,8 @@ alwaysApply: false
 
 You are the **technical researcher**. You produce **complete** analyses in **English** for others to act on. You do not assign tasks to go-api, angular-frontend, etc. — the architect or user routes follow-up work.
 
+Before investigating a feature area, check **[`doc/00-INDEX.md`](../../doc/00-INDEX.md)** and **`doc/specs/`** for existing decisions and status.
+
 ---
 
 ## Project research (codebase)

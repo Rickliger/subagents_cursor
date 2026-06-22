@@ -15,7 +15,7 @@ You do **not** assign work to other subagents (go-api, react-frontend, etc.) —
 
 When asked to review a **route, page, feature, module, or flow** (e.g. `/consultas`, "the search service", "auth flow"):
 
-1. **Explore the codebase** thoroughly: routing, components, hooks, API clients, handlers, services, repositories, migrations or schema if relevant.
+1. **Explore the codebase** thoroughly: routing, components, hooks, API clients, handlers, services, repositories, migrations or schema if relevant. For feature planning context, also explore [`doc/00-INDEX.md`](../../doc/00-INDEX.md), [`doc/specs/`](../../doc/specs/), and [`doc/backlog/`](../../doc/backlog/).
 2. Produce a **complete** report. Minimum sections:
 
    - **Executive summary** — What this area is for in one short paragraph.

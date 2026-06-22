@@ -7,6 +7,8 @@ description: Adds a new REST endpoint following project conventions. Use when cr
 
 Use this workflow when adding a new API resource. Ensures handler/service/repository layering and consistent naming.
 
+If the endpoint is part of a planned initiative, read the relevant spec in [`doc/specs/`](../../doc/specs/) and status in [`doc/00-INDEX.md`](../../doc/00-INDEX.md) first. If the task cites a backlog item (`Backlog BNNN`), read that file in [`doc/backlog/`](../../doc/backlog/) for acceptance criteria.
+
 ## Checklist
 
 - [ ] Define request/response types in `internal/model/` (or existing domain package)
